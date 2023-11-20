@@ -39,11 +39,6 @@ app.post("/", async (req, res) => {
   });
   
 
-
-
-
-
-
 app.listen(PORT, () => {
     console.log(`Server Started on ${PORT}`);
     console.log('Press CTRL + C to stop server');
