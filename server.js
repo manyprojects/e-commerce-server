@@ -5,6 +5,8 @@ const app = express();
 const PORT =  process.env.PORT ?? 8080;
 const cors = require('cors');
 const axios = require('axios');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 
 app.use(cors({
@@ -14,7 +16,7 @@ app.use(cors({
 app.use(express.json());
 
 
-
+// gets all the products
 app.get('/', async (_req, res) => {
     try {
       const data = await knex('products');
@@ -26,6 +28,7 @@ app.get('/', async (_req, res) => {
     }
 });
 
+// gets a selected product
 app.get('/products/:id', async (req, res) => {
   try {
     const data = await knex('products')
@@ -40,6 +43,7 @@ app.get('/products/:id', async (req, res) => {
   }
 });
 
+// for phase 2
 app.put('/products/:id', async (req, res) => {
   const updates = req.body;
   console.log(req.body);
@@ -69,19 +73,74 @@ app.post('/', async (req, res) => {
     }
 });
 
+// Creates a new user
 app.post('/signup', async (req, res) => {
+  const { username, email, password } = req.body;
+  if ( !username || !email || !password ) {
+    return res.status(400).json({ message: 'Please enter the required fields' });
+  }
+  const hashedPassword = bcrypt.hashSync(password);
+  
+  const newUser = {
+    username,
+    email,
+    password_hash: hashedPassword
+  };
+
   try {
-    const data = await knex.insert(req.body).into("users");
-    res.status(201).send("Product added!");
+    const data = await knex.insert(newUser).into("users");
+    return res.status(201).send("Signed up successful!");
 
   } catch (err) {
     res
       .status(500)
-      .json({ message: `Unable to create new product: ${err}` });
+      .json({ message: `Unable to create new user: ${err}` });
   }
 });
 
 
+// Login a user
+app.post('/signin', async (req, res) => {
+  const { email, password } = req.body;
+  if ( !email || !password ) {
+    return res.status(400).json({ message: 'Please enter the required fields' });
+  }
+
+  // find the user
+  const user = await knex('users').where({ email: email }).first();
+  if( !user ) {
+    return res.status(400).json({ message: 'Invalid email' });
+  }
+
+  // validate the password
+  const isPasswordCorrect = bcrypt.compareSync(password, user.password_hash);
+  if( !isPasswordCorrect ) {
+    return res.status(400).json({ message: "Invalid password" });
+  }
+
+  // generates the token as a response
+  const token = jwt.sign(
+    { user_id: user.user_id, email: user.email },
+    process.env.JWT_SECRET,
+    { expiresIn: '5m' }
+  )
+
+  res.status(200).json({ token: token });
+});
+
+// shpooing cart
+app.post('/insertItems', async (req, res) => {
+  const items = req.body.items;
+
+  try {
+    await knex('cart').insert(items);
+    res.status(200).json({ message: 'Items inserted in cart table' });
+  } catch(err) {
+    console.log(err);
+    res.status(500).json({ message: 'Can not insert items' });
+  }
+
+});
   
 
 app.listen(PORT, () => {
