@@ -19,9 +19,7 @@ app.use(express.json());
 // gets all the products
 app.get('/', async (_req, res) => {
     try {
-      const data = await knex('products');
-    //   console.log(data);
-  
+      const data = await knex('products'); 
       res.status(200).json(data);
     } catch (err) {
       res.status(400).json(`Error retreieving Products: ${err}`);
@@ -36,7 +34,6 @@ app.get('/products/:id', async (req, res) => {
     .where({
       id: req.params.id
     });
-
     res.status(200).json(data);
   } catch (err) {
     res.status(400).json(`Error retreieving Products: ${err}`);
@@ -46,7 +43,6 @@ app.get('/products/:id', async (req, res) => {
 // for phase 2
 app.put('/products/:id', async (req, res) => {
   const updates = req.body;
-  console.log(req.body);
   try {
     const number = await knex('products')
     .where({ id: req.params.id })
@@ -63,9 +59,7 @@ app.put('/products/:id', async (req, res) => {
 app.post('/', async (req, res) => {
     try {
       const data = await knex.insert(req.body).into("products");
-      console.log(data);
       return res.status(201).send("Product added!");
-
     } catch (err) {
       res
         .status(500)
@@ -128,18 +122,74 @@ app.post('/signin', async (req, res) => {
   res.status(200).json({ token: token });
 });
 
-// shpooing cart
+// insert shpooing cart items to database
 app.post('/insertItems', async (req, res) => {
-  const items = req.body.items;
-
+  const items = req.body;
   try {
     await knex('cart').insert(items);
     res.status(200).json({ message: 'Items inserted in cart table' });
   } catch(err) {
-    console.log(err);
     res.status(500).json({ message: 'Can not insert items' });
   }
+});
 
+// fetch all items from database in cart after users signed in
+app.get('/getItems', async (_req, res) => {
+  try {
+    const data = await knex('cart');
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(400).json(`Error retreieving Products: ${err}`);
+  }
+});
+
+// fetch user by email
+app.get('/:email', async (req, res) => {
+  try {
+    const data = await knex('users')
+    .select('*')
+    .where({
+      email: req.params.email
+    });
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(400).json(`Error retreieving user: ${err}`);
+  }
+});
+
+// get cart items after user signed in (tables joined)
+app.get('/cart/:email', async (req, res) => {
+  try {
+    const data = await knex('cart')
+    .select(
+      'cart.*',
+      'users.*',
+      'products.*'
+    )
+    .join('users', 'cart.user_id','=', 'users.user_id')
+    .join('products', 'cart.id', '=', 'products.id')
+    .where({ 'users.email': req.params.email });
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(400).json( `Error retreieving products: ${err}` );
+  }
+});
+
+// delet item from cart after user signed in
+app.delete('/cart/:userId/:id', async (req, res) => {
+  try{
+    const itemDelete = await knex('cart')
+    .where({ id: req.params.id, user_id: req.params.userId }).first()
+    .delete();
+    if (itemDelete === 0) {
+      return res
+        .status(404)
+        .json({ message: `item ID ${req.params.id} not found` });
+    }
+    res.status(204).json(itemDelete);
+  } catch(err) {
+    res.status(500).json({ message: `Unable to delete item: ${err}` });
+  }
 });
   
 
