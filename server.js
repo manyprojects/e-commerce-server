@@ -4,7 +4,6 @@ require('dotenv').config();
 const app = express();
 const PORT =  process.env.PORT ?? 8080;
 const cors = require('cors');
-const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -40,7 +39,7 @@ app.get('/products/:id', async (req, res) => {
   }
 });
 
-// for phase 2
+// for phase 2: updates an item
 app.put('/products/:id', async (req, res) => {
   const updates = req.body;
   try {
@@ -55,7 +54,7 @@ app.put('/products/:id', async (req, res) => {
   }
 });
 
-
+// for phase 2: adds a single item to database
 app.post('/', async (req, res) => {
     try {
       const data = await knex.insert(req.body).into("products");
