@@ -1,1 +1,1 @@
-# e-commerce-server
+# E-COMMERCE server
