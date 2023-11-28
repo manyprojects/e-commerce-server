@@ -14,6 +14,31 @@ app.use(cors({
 
 app.use(express.json());
 
+const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
+
+app.post('/checkout', async (req, res) => {
+  const items = req.body.items;
+  let lineItems = [];
+  items.forEach((item) => {
+    lineItems.push(
+      {
+        price: item.id,
+        quantity: 1
+      }
+    )
+  });
+
+  const session = await stripe.checkout.sessions.create({
+    line_items: lineItems,
+    mode: 'payment',
+    success_url: `${process.env.CLIENT_URL}/success`,
+    cancel_url: `${process.env.CLIENT_URL}/cancel`
+  });
+
+  res.send(JSON.stringify({
+    url: session.url
+  }));
+});
 
 // gets all the products
 app.get('/', async (_req, res) => {
