@@ -216,6 +216,43 @@ app.delete('/cart/:userId/:id', async (req, res) => {
   }
 });
   
+// chatGPT 
+app.post('/completions', async (req, res) => {
+
+  setting = `You are a language model assistant. Your responses should be based only on the shopping site data
+  provided in the conversation. Do not use external sources or information beyond the given context. If the given quest
+  requires you using external resource, you should respond as: "Sorry, I can't provide you with a response right now 
+  because the question requires external resource." as the only sentence. Else if the response only requires using 
+  provided data in this conversation, your response should be based on the questions and data below in the 
+  object (key-value pairs) or in an array. Your response should be a summarized sentence plus list format. If there're lists 
+  in your response, use bullet points or index numbers:
+
+  { shopping-site-name: E-COMMERCE, num-of-products: 20, functionality: allows users to purchase with AI experience }
+
+`
+  const prompt = setting + JSON.stringify(req.body);
+  const options = {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.GPT_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+          // model: "text-davinci-003",
+          model: "gpt-3.5-turbo-instruct",
+          // prompt: "who is george washington?",
+          prompt: prompt,
+          max_tokens: 200
+      })
+  }
+  try {
+      const response = await fetch('https://api.openai.com/v1/completions', options);
+      const data = await response.json();
+      res.status(200).send(data);
+  } catch (error) {
+      res.status(500).json({ message: `Unable to generate a response: ${err}` });
+  }
+});
 
 app.listen(PORT, () => {
     console.log(`Server Started on ${PORT}`);
